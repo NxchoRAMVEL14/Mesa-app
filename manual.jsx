@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ALIMENTOS, CATEGORIAS_ALIMENTO, UNIDADES, buscarAlimentos } from './data/alimentos.js';
 import { TIEMPOS } from './data/recetas.js';
+import { interpretarLectura, variantesDeCodigo, EXPLICACIONES } from './codigos.js';
 
 const nid = () => Math.random().toString(36).slice(2, 10);
 const red = (n) => Math.round((Number(n) || 0) * 10) / 10;
@@ -13,6 +14,24 @@ const red = (n) => Math.round((Number(n) || 0) * 10) / 10;
 // escaneo del mismo código funciona sin conexión.
 
 const OFF_CAMPOS = 'product_name,product_name_es,brands,quantity,serving_size,nutriments';
+
+// Prueba las variantes del código en orden hasta que una acierte: el GTIN-14
+// rellenado del QR y el código impreso son el mismo producto, pero la base
+// puede tener registrada sólo una de las dos formas.
+export async function consultarConVariantes(codigo) {
+  const variantes = variantesDeCodigo(codigo);
+  if (!variantes.length) throw new Error('no-encontrado');
+  let ultimo = new Error('no-encontrado');
+  for (const v of variantes) {
+    try { return await consultarProducto(v); }
+    catch (e) {
+      ultimo = e;
+      // Si falla la red no tiene sentido seguir probando variantes.
+      if (e.message !== 'no-encontrado' && e.message !== 'sin-datos') throw e;
+    }
+  }
+  throw ultimo;
+}
 
 export async function consultarProducto(codigo) {
   const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(codigo)}.json?fields=${OFF_CAMPOS}`;
@@ -61,7 +80,7 @@ function Camara({ onCodigo, onError }) {
     (async () => {
       try {
         detector = new window.BarcodeDetector({
-          formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'],
+          formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'qr_code', 'data_matrix', 'itf'],
         });
         flujo = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment' },
@@ -106,29 +125,45 @@ function Escaner({ productos, onProducto, onCerrar, onAtras, onGuardarCache, Hoj
   const [codigo, setCodigo] = useState('');
   const [estado, setEstado] = useState(null);
   const [error, setError] = useState(null);
+  const [leido, setLeido] = useState(null);
 
-  const resolver = async (valor) => {
-    const limpio = String(valor).replace(/\D/g, '');
-    if (limpio.length < 6) { setError('corto'); return; }
-    setModo('espera'); setEstado('buscando'); setError(null);
+  // Recibe lo que sea que haya leído la cámara —número, liga de producto o QR
+  // de publicidad— y decide qué hacer con cada caso.
+  const resolver = async (crudo) => {
+    const lectura = interpretarLectura(crudo);
 
-    const enCache = productos[limpio];
-    if (enCache) { onProducto(enCache, true); return; }
+    if (lectura.tipo !== 'codigo') {
+      setEstado(null);
+      setLeido(lectura);
+      setError(lectura.tipo);
+      setCodigo(lectura.tipo === 'digitos-raros' ? lectura.valor : '');
+      setModo('teclado');
+      return;
+    }
+
+    setModo('espera'); setEstado('buscando'); setError(null); setLeido(lectura);
+
+    // El caché se consulta por todas las variantes del código, para que un QR
+    // acierte con lo que ya se había guardado escaneando el código de barras.
+    for (const v of variantesDeCodigo(lectura.codigo)) {
+      if (productos[v]) { onProducto(productos[v], true); return; }
+    }
 
     try {
-      const prod = await consultarProducto(limpio);
+      const prod = await consultarConVariantes(lectura.codigo);
       onGuardarCache(prod);
       onProducto(prod, false);
     } catch (e) {
       setEstado(null);
-      setError(e.message === 'no-encontrado' ? 'no-encontrado'
-        : e.message === 'sin-datos' ? 'sin-datos' : 'red');
-      setCodigo(limpio);
+      setError(e.message === 'sin-datos' ? 'sin-datos'
+        : e.message === 'no-encontrado' ? 'no-encontrado' : 'red');
+      setCodigo(lectura.codigo);
       setModo('teclado');
     }
   };
 
   const mensajes = {
+    ...EXPLICACIONES,
     'no-encontrado': 'Ese código no está en la base de datos. Es normal con productos mexicanos poco comunes: captúralo a mano y queda guardado.',
     'sin-datos': 'El producto existe pero nadie ha subido su información nutrimental. Captúrala a mano leyendo la etiqueta.',
     red: 'No se pudo consultar la base de datos. Revisa tu conexión, o captura el producto a mano.',
@@ -138,11 +173,12 @@ function Escaner({ productos, onProducto, onCerrar, onAtras, onGuardarCache, Hoj
   };
 
   return (
-    <Hoja titulo="Escanear producto" onCerrar={onCerrar}>
+    <Hoja titulo="Escanear código o QR" onCerrar={onCerrar}>
       {modo === 'camara' && (<>
         <Camara onCodigo={resolver} onError={(e) => { setError(e); setModo('teclado'); }} />
         <p className="nota" style={{ marginTop: 0 }}>
-          Apunta al código de barras. Si tarda, hay buena luz de por medio: también puedes escribirlo.
+          Sirve con código de barras y también con QR. Si el QR sólo lleva a una página de
+          publicidad, la app te lo dirá: ese caso hay que capturarlo a mano.
         </p>
         <div className="fila-btn">
           <button className="btn linea" onClick={onAtras}>Atrás</button>
@@ -157,8 +193,18 @@ function Escaner({ productos, onProducto, onCerrar, onAtras, onGuardarCache, Hoj
 
       {modo === 'teclado' && (<>
         {error && <div className="aviso" style={{ marginBottom: 12 }}>{mensajes[error]}</div>}
+        {leido && leido.tipo === 'url-sin-codigo' && (
+          <p className="nota" style={{ marginTop: -6, marginBottom: 12 }}>
+            El QR apuntaba a <b>{leido.dominio}</b>.
+          </p>
+        )}
+        {leido && leido.tipo === 'codigo' && leido.origen !== 'directo' && (
+          <p className="nota" style={{ marginTop: -6, marginBottom: 12 }}>
+            Del QR se sacó el código <b>{leido.codigo}</b>.
+          </p>
+        )}
         <div className="campo">
-          <label>Código de barras</label>
+          <label>Código del producto</label>
           <input type="tel" inputMode="numeric" autoFocus value={codigo}
             onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ''))} placeholder="7501234567890" />
         </div>
@@ -331,7 +377,7 @@ export function AgregarComida({ estado, tiempoSugerido, onGuardar, onCerrar, onG
   return (
     <Hoja titulo="Agregar lo que comí" sub="Para lo que comiste fuera del menú planeado." onCerrar={onCerrar}>
       <div className="fila-btn" style={{ marginBottom: 14 }}>
-        <button className="btn suave" onClick={() => setPaso('escaner')}>Escanear código</button>
+        <button className="btn suave" onClick={() => setPaso('escaner')}>Escanear código o QR</button>
         <button className="btn suave" onClick={() => setPaso('libre')}>Escribir a mano</button>
       </div>
 

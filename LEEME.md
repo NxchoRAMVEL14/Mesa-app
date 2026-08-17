@@ -33,11 +33,27 @@ estuviera en el plan. Tres vías: buscar en la lista de 140 alimentos comunes
 que funciona sin conexión, escanear el código de barras, o escribirlo a mano.
 Lo registrado suma a los totales del día igual que el menú planeado.
 
+El escáner lee **códigos de barras y también QR**. Un QR de producto trae una
+liga cuyo camino codifica el identificador (`/01/{GTIN}`); la app lo extrae, le
+quita el relleno de ceros que exige el estándar GS1 Digital Link y prueba las
+variantes hasta acertar. Si el QR es sólo publicidad y no trae identificador
+—muy común en empaques chicos como los sobres individuales— la app lo detecta,
+dice a qué página apuntaba y deja capturar el producto a mano.
+
 El escáner consulta **Open Food Facts**, base abierta de productos sin llave de
 API. Los datos los aportan voluntarios, así que pueden estar incompletos: la
 app siempre los muestra para revisarlos antes de guardar. Cada producto
 consultado se guarda en el teléfono, así el segundo escaneo del mismo código no
 necesita internet.
+
+## Buzón de ideas
+
+Botón **?** → pestaña *Mis ideas*. Sirve para anotar mejoras en el momento en
+que se te ocurren usando la app. Cada idea lleva la pantalla donde aplica —se
+propone sola según dónde estabas— y qué tanto urge. El botón *Copiar todas las
+pendientes* las exporta agrupadas por prioridad, listas para pegar donde se
+vayan a pedir los cambios. Cada idea pasa por *por pedir*, *ya la pedí* y
+*ya está*.
 
 ## Modo recuperación
 
@@ -118,7 +134,7 @@ npx esbuild src/app.jsx --bundle --minify --format=iife --target=es2018 \
 ```
 
 Si cambias `sw.js` o los archivos en caché, sube el número de versión en
-`const CACHE = 'mesa-v5'` para que los teléfonos tomen la versión nueva.
+`const CACHE = 'mesa-v6'` para que los teléfonos tomen la versión nueva.
 
 ## Si la página no abre
 

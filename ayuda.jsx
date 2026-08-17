@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { PantallaMejoras } from './mejoras.jsx';
 
-export const VERSION = '1.3.0';
+export const VERSION = '1.4.0';
 
 // ── Manual de usuario ─────────────────────────────────────────────────────
 // Se guarda dentro de la app a propósito: un manual en un archivo aparte no
@@ -101,6 +102,17 @@ const MANUAL = [
     ],
   },
   {
+    t: 'Anotar mejoras',
+    icono: '✎',
+    p: [
+      ['Dónde está', 'En este mismo botón de ayuda, pestaña **Mis ideas**. Sirve para anotar lo que se te ocurra mientras usas la app, en el momento en que se te ocurre.'],
+      ['Por qué anotarlas ahí', 'Las ideas llegan usando la app: en el súper, cocinando, entrenando. Si esperas a llegar a la computadora, se olvidan. Anótala aunque sea a medias.'],
+      ['Cómo se organizan', 'Cada idea lleva la pantalla donde aplica —se propone sola según dónde estabas— y qué tanto te urge: *me estorba*, *me ayudaría* o *algún día*.'],
+      ['Sacarlas de la app', 'El botón **Copiar todas las pendientes** las pone en el portapapeles agrupadas por prioridad, listas para pegar donde vayas a pedir los cambios.'],
+      ['Llevar la cuenta', 'Cada idea pasa por tres estados: *por pedir*, *ya la pedí* y *ya está*. Así no vuelves a pedir lo mismo dos veces ni pierdes de vista lo que falta.'],
+    ],
+  },
+  {
     t: 'Sobre los números',
     icono: '⚖',
     p: [
@@ -114,6 +126,20 @@ const MANUAL = [
 
 // ── Notas de versión ──────────────────────────────────────────────────────
 const NOTAS = [
+  {
+    v: '1.4.0', fecha: '17 de agosto de 2026', titulo: 'Códigos QR y buzón de ideas',
+    nuevo: [
+      'El escáner ahora lee códigos QR y Data Matrix además de los códigos de barras.',
+      'Buzón de mejoras en la pestaña Mis ideas, con prioridad, pantalla y estado de cada una, y exportación al portapapeles.',
+      'Endulzantes y salsas en la lista de alimentos: Splenda, stevia, azúcar, miel, salsas y limón. Ya son 146 alimentos sin conexión.',
+      'Unidades nuevas al capturar a mano: sobre y gotas.',
+    ],
+    detalles: [
+      'Un QR de producto no trae el número a secas: trae una liga cuyo camino codifica el código con el formato /01/. Además el estándar exige rellenarlo a 14 dígitos con ceros a la izquierda, y la base de datos lo tiene guardado como viene impreso. La app extrae el código de la liga, le quita el relleno y prueba las variantes hasta acertar.',
+      'Muchos QR de empaque son sólo publicidad y no traen ningún código dentro. Eso no tiene arreglo técnico: cuando pasa, la app lo detecta, te dice a qué página apuntaba y te deja capturar el producto a mano.',
+      'El caché de productos se consulta por todas las variantes del código, así que un QR encuentra lo que ya habías guardado escaneando el código de barras del mismo producto.',
+    ],
+  },
   {
     v: '1.3.0', fecha: '17 de agosto de 2026', titulo: 'Registrar fuera del menú',
     nuevo: [
@@ -190,7 +216,7 @@ function Texto({ children }) {
     ? <b key={i}>{x.slice(2, -2)}</b> : <React.Fragment key={i}>{x}</React.Fragment>)}</>;
 }
 
-export function PantallaAyuda({ Hoja }) {
+export function PantallaAyuda({ Hoja, estado, actualizar, pantallaPrevia }) {
   const [vista, setVista] = useState('manual');
   const [abierta, setAbierta] = useState(null);
 
@@ -198,9 +224,14 @@ export function PantallaAyuda({ Hoja }) {
     <div className="chips">
       <button className={'chip' + (vista === 'manual' ? ' on' : '')} onClick={() => setVista('manual')}>Manual</button>
       <button className={'chip' + (vista === 'notas' ? ' on' : '')} onClick={() => setVista('notas')}>Novedades</button>
+      <button className={'chip' + (vista === 'mejoras' ? ' on' : '')} onClick={() => setVista('mejoras')}>
+        Mis ideas{(estado.mejoras || []).filter((m) => m.estado !== 'lista').length
+          ? ` · ${(estado.mejoras || []).filter((m) => m.estado !== 'lista').length}` : ''}
+      </button>
     </div>
 
-    {vista === 'manual' ? (<>
+    {vista === 'mejoras' ? <PantallaMejoras {...{ estado, actualizar, pantallaPrevia, Hoja }} />
+      : vista === 'manual' ? (<>
       {MANUAL.map((sec) => (
         <div className="tarjeta" key={sec.t} style={{ cursor: 'pointer' }} onClick={() => setAbierta(sec)}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>

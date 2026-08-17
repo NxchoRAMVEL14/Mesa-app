@@ -3,6 +3,37 @@
 Estas notas también están dentro de la app, en el botón **?** del encabezado,
 pestaña *Novedades*.
 
+## 1.4.0 — 17 de agosto de 2026 · Códigos QR y buzón de ideas
+
+**Nuevo**
+- El escáner lee códigos QR y Data Matrix además de los códigos de barras.
+- Buzón de mejoras en la pestaña *Mis ideas*, con prioridad, pantalla y estado
+  de cada una, y exportación al portapapeles.
+- Endulzantes y salsas en la lista de alimentos: Splenda, stevia, azúcar, miel,
+  salsas y limón. Ya son 146 alimentos disponibles sin conexión.
+- Unidades nuevas al capturar a mano: sobre y gotas.
+
+**Detalles**
+- Un QR de producto no trae el número a secas. Trae una liga cuyo camino
+  codifica el identificador con el formato `/01/{GTIN}`, y el estándar GS1
+  Digital Link exige rellenar ese GTIN a 14 dígitos con ceros a la izquierda,
+  mientras que la base de datos lo tiene guardado como viene impreso en el
+  empaque. La app extrae el código de la liga, le quita el relleno y prueba las
+  variantes razonables hasta acertar. También acepta la forma antigua `/gtin/`,
+  que el estándar retiró pero que sigue impresa en empaques existentes.
+- Muchos QR de empaque son sólo publicidad y no traen ningún identificador
+  dentro. Eso no tiene arreglo técnico: cuando pasa, la app lo detecta, dice a
+  qué página apuntaba y deja capturar el producto a mano. Los QR de wifi o de
+  texto suelto también se distinguen para no tomarlos por producto.
+- El caché de productos se consulta por todas las variantes del código, así que
+  un QR encuentra lo que ya se había guardado escaneando el código de barras del
+  mismo producto, sin volver a la red.
+
+**Arreglado**
+- Un selector de estilos ambiguo hacía que dos botones distintos de la misma
+  tarjeta compartieran clases; se detectó al probar y no afectaba el uso, pero
+  quedó separado.
+
 ## 1.3.0 — 17 de agosto de 2026 · Registrar fuera del menú
 
 **Nuevo**

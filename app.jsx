@@ -1043,7 +1043,7 @@ function Bienvenida({ onListo }) {
 }
 
 /* ══════════ Raíz ══════════ */
-const VACIO = { personas: [], plan: {}, bitacora: {}, medidas: [], misRecetas: [], compras: {}, despensa: {}, rutina: null, frecuentes: [], productos: {} };
+const VACIO = { personas: [], plan: {}, bitacora: {}, medidas: [], misRecetas: [], compras: {}, despensa: {}, rutina: null, frecuentes: [], productos: {}, mejoras: [] };
 
 function App() {
   const [estado, setEstado] = useState(null);
@@ -1094,7 +1094,7 @@ function App() {
           <div style={{ minWidth: 0 }}>
             <p className="eyebrow">Mesa</p>
             <h1>{pantalla === 'ayuda' ? 'Ayuda' : p.titulo}</h1>
-            <p className="sub">{pantalla === 'ayuda' ? 'Cómo usar la app y qué cambió en cada versión.' : p.sub}</p>
+            <p className="sub">{pantalla === 'ayuda' ? 'Manual, novedades y tus ideas de mejora.' : p.sub}</p>
           </div>
           <button className={'btn-ayuda' + (pantalla === 'ayuda' ? ' on' : '')}
             aria-label={pantalla === 'ayuda' ? 'Cerrar ayuda' : 'Abrir ayuda y manual'}
@@ -1111,7 +1111,7 @@ function App() {
         {pantalla === 'recetario' && <PantallaRecetario recetas={recetas} porciones={porciones} onNueva={() => setNuevaReceta(true)} />}
         {pantalla === 'super' && <PantallaSuper {...{ estado, actualizar, recetas }} />}
         {pantalla === 'progreso' && <PantallaProgreso {...{ estado, actualizar }} />}
-        {pantalla === 'ayuda' && <PantallaAyuda Hoja={Hoja} />}
+        {pantalla === 'ayuda' && <PantallaAyuda Hoja={Hoja} estado={estado} actualizar={actualizar} pantallaPrevia={previa} />}
       </div>
 
       <nav className="nav"><div className="nav-int">

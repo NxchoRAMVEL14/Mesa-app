@@ -17,6 +17,7 @@ export const CATEGORIAS_ALIMENTO = [
   { k: 'lacteos', nombre: 'Lácteos' },
   { k: 'antojitos', nombre: 'Antojitos y comida rápida' },
   { k: 'dulces', nombre: 'Dulces y postres' },
+  { k: 'anadidos', nombre: 'Endulzantes y salsas', desc: 'Lo que se agrega a otra cosa' },
   { k: 'grasas', nombre: 'Grasas, semillas y botanas' },
 ];
 
@@ -162,6 +163,20 @@ export const ALIMENTOS = [
   a('s07', 'Dulce de leche o cajeta', 'dulces', 30, 'g', [100, 2, 18, 2.5]),
   a('s08', 'Gomitas', 'dulces', 40, 'g', [140, 2, 33, 0]),
 
+  // ── Edulcorantes y añadidos ──
+  a('e01', 'Splenda, un sobre', 'anadidos', 1, 'sobre', [4, 0, 1, 0]),
+  a('e02', 'Stevia, un sobre', 'anadidos', 1, 'sobre', [4, 0, 1, 0]),
+  a('e03', 'Edulcorante líquido, unas gotas', 'anadidos', 5, 'gotas', [0, 0, 0, 0]),
+  a('e04', 'Azúcar, una cucharada', 'anadidos', 12, 'g', [46, 0, 12, 0]),
+  a('e05', 'Azúcar, una cucharadita', 'anadidos', 4, 'g', [16, 0, 4, 0]),
+  a('e06', 'Miel, una cucharada', 'anadidos', 21, 'g', [64, 0, 17, 0]),
+  a('e07', 'Sal', 'anadidos', 2, 'g', [0, 0, 0, 0]),
+  a('e08', 'Salsa picante embotellada', 'anadidos', 15, 'ml', [5, 0, 1, 0]),
+  a('e09', 'Salsa verde o roja de molcajete', 'anadidos', 40, 'g', [20, 1, 4, 0.3]),
+  a('e10', 'Cátsup', 'anadidos', 15, 'g', [18, 0.2, 4.5, 0]),
+  a('e11', 'Limón exprimido', 'anadidos', 1, 'pza', [8, 0.1, 3, 0]),
+  a('e12', 'Chile en polvo con limón', 'anadidos', 5, 'g', [10, 0.2, 2, 0]),
+
   // ── Grasas, semillas y botanas ──
   a('g01', 'Cacahuates', 'grasas', 30, 'g', [170, 7, 5, 15]),
   a('g02', 'Nueces', 'grasas', 30, 'g', [195, 4.5, 4, 19]),
@@ -177,7 +192,7 @@ export const ALIMENTOS = [
 ];
 
 // Unidades disponibles al capturar un alimento a mano.
-export const UNIDADES = ['g', 'ml', 'pza', 'reb', 'taza', 'plato', 'orden', 'porción'];
+export const UNIDADES = ['g', 'ml', 'pza', 'reb', 'sobre', 'gotas', 'taza', 'plato', 'orden', 'porción'];
 
 export const buscarAlimentos = (q, cat) => {
   const t = (q || '').trim().toLowerCase();

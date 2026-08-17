@@ -1,4 +1,4 @@
-const CACHE = 'mesa-v5';
+const CACHE = 'mesa-v6';
 const ARCHIVOS = ['./', './index.html', './estilos.css', './app.js', './manifest.json', './icono-192.png', './icono-512.png'];
 
 self.addEventListener('install', (e) => {
