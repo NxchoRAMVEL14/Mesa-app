@@ -1,0 +1,179 @@
+:root{
+  --cobalto:#17357E; --cobalto-vivo:#3459C4; --cobalto-lavado:#EAEFFB;
+  --jade:#2E7D64; --jade-lavado:#E6F2EC;
+  --maiz:#D99400; --maiz-lavado:#FBF0D8;
+  --achiote:#B23A2E; --achiote-lavado:#FBEAE7;
+  --cal:#F7F8FB; --superficie:#FFFFFF;
+  --tinta:#141C33; --tinta-media:#4A5573; --tinta-suave:#8A93A8;
+  --linea:#E2E6F0; --linea-fuerte:#C9D0E2;
+  --r:14px; --r-s:9px;
+  --sombra:0 1px 2px rgba(20,28,51,.05), 0 6px 20px rgba(20,28,51,.05);
+  --display:'Fraunces',Georgia,serif;
+  --texto:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body,#raiz{height:100%}
+body{
+  margin:0;background:var(--cal);color:var(--tinta);
+  font-family:var(--texto);font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums;
+}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2.5px solid var(--cobalto-vivo);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ── Armazón ── */
+.app{min-height:100%;display:flex;flex-direction:column;max-width:620px;margin:0 auto;background:var(--cal)}
+.lienzo{flex:1;padding:0 16px 108px;animation:entra .28s ease}
+@keyframes entra{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.encabezado{padding:22px 16px 14px;max-width:620px;margin:0 auto;width:100%}
+.encabezado .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--tinta-suave);font-weight:600;margin:0 0 3px}
+.encabezado h1{font-family:var(--display);font-weight:600;font-size:29px;line-height:1.1;margin:0;letter-spacing:-.01em}
+.encabezado .sub{color:var(--tinta-media);font-size:13.5px;margin:5px 0 0}
+
+/* ── Navegación ── */
+.nav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.94);
+  backdrop-filter:blur(14px);border-top:1px solid var(--linea);
+  display:flex;padding:7px 6px calc(7px + env(safe-area-inset-bottom));z-index:60}
+.nav-int{display:flex;width:100%;max-width:620px;margin:0 auto}
+.nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:7px 2px;border-radius:var(--r-s);color:var(--tinta-suave);
+  font-size:10.5px;font-weight:600;transition:color .15s}
+.nav button.on{color:var(--cobalto)}
+.nav .glifo{font-size:19px;line-height:1}
+
+/* ── Tarjetas ── */
+.tarjeta{background:var(--superficie);border:1px solid var(--linea);border-radius:var(--r);
+  padding:16px;margin-bottom:12px;box-shadow:var(--sombra)}
+.tarjeta.plana{box-shadow:none}
+.titulo-seccion{font-family:var(--display);font-weight:600;font-size:17px;margin:24px 0 10px;letter-spacing:-.01em}
+.titulo-seccion:first-child{margin-top:4px}
+
+/* ── Tira de la semana: el azulejo ── */
+.tira{display:grid;grid-template-columns:auto repeat(7,1fr);gap:4px;align-items:center}
+.tira-etq{font-size:10px;font-weight:700;color:var(--tinta-suave);text-align:right;padding-right:6px;
+  letter-spacing:.04em;text-transform:uppercase}
+.tira-dia{text-align:center;font-size:10.5px;font-weight:700;color:var(--tinta-suave);padding-bottom:3px}
+.tira-dia.hoy{color:var(--cobalto)}
+.azulejo{aspect-ratio:1;border-radius:5px;background:var(--linea);position:relative;
+  transition:transform .12s,background .2s;display:block;width:100%}
+.azulejo:active{transform:scale(.9)}
+.azulejo.plan{background:var(--cobalto-lavado)}
+.azulejo.hecho{background:var(--cobalto)}
+.azulejo.hecho::after{content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.32),transparent 62%);border-radius:5px}
+.azulejo.vacio{background:transparent;border:1.5px dashed var(--linea-fuerte)}
+.leyenda{display:flex;gap:14px;margin-top:14px;font-size:11.5px;color:var(--tinta-media);flex-wrap:wrap}
+.leyenda span{display:flex;align-items:center;gap:5px}
+.punto{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* ── Renglón de comida ── */
+.comida{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--linea)}
+.comida:last-child{border-bottom:0;padding-bottom:0}
+.comida:first-child{padding-top:0}
+.marca{width:26px;height:26px;border-radius:8px;border:2px solid var(--linea-fuerte);
+  flex-shrink:0;margin-top:1px;display:grid;place-items:center;color:#fff;
+  font-size:14px;transition:all .15s}
+.marca.on{background:var(--cobalto);border-color:var(--cobalto)}
+.comida-cuerpo{flex:1;min-width:0}
+.comida-tiempo{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tinta-suave)}
+.comida-nombre{font-weight:600;font-size:15px;margin:1px 0 3px;letter-spacing:-.005em}
+.comida-nombre.tachado{color:var(--tinta-suave)}
+.comida-meta{font-size:12px;color:var(--tinta-media)}
+
+/* ── Píldoras y etiquetas ── */
+.pildora{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;
+  font-size:11px;font-weight:600;background:var(--cobalto-lavado);color:var(--cobalto)}
+.pildora.jade{background:var(--jade-lavado);color:var(--jade)}
+.pildora.maiz{background:var(--maiz-lavado);color:var(--maiz)}
+.pildora.gris{background:var(--cal);color:var(--tinta-media);border:1px solid var(--linea)}
+
+/* ── Botones ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:11px 17px;border-radius:var(--r-s);font-weight:600;font-size:14px;
+  background:var(--cobalto);color:#fff;transition:opacity .15s,transform .1s;width:100%}
+.btn:active{transform:scale(.985)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.linea{background:transparent;color:var(--cobalto);border:1.5px solid var(--linea-fuerte)}
+.btn.suave{background:var(--cobalto-lavado);color:var(--cobalto)}
+.btn.peligro{background:transparent;color:var(--achiote);border:1.5px solid var(--achiote-lavado)}
+.btn.chico{padding:7px 13px;font-size:12.5px;width:auto}
+.fila-btn{display:flex;gap:8px}
+.fila-btn .btn{flex:1}
+
+/* ── Formularios ── */
+.campo{margin-bottom:13px}
+.campo label{display:block;font-size:12px;font-weight:600;color:var(--tinta-media);margin-bottom:5px}
+.campo input,.campo select,.campo textarea{width:100%;padding:10px 12px;border:1.5px solid var(--linea);
+  border-radius:var(--r-s);background:var(--superficie);font-size:15px}
+.campo input:focus,.campo select:focus{border-color:var(--cobalto-vivo);outline:none}
+.rejilla2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── Medidores ── */
+.medidor{margin-bottom:12px}
+.medidor:last-child{margin-bottom:0}
+.medidor-cab{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;font-size:12.5px}
+.medidor-cab b{font-size:13.5px;font-weight:600}
+.barra{height:7px;background:var(--linea);border-radius:100px;overflow:hidden}
+.barra i{display:block;height:100%;border-radius:100px;background:var(--cobalto);transition:width .4s ease}
+.barra i.jade{background:var(--jade)}
+.barra i.maiz{background:var(--maiz)}
+.barra i.achiote{background:var(--achiote)}
+
+/* ── Vasos de agua ── */
+.vasos{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.vaso{width:30px;height:38px;border-radius:4px 4px 9px 9px;border:2px solid var(--linea-fuerte);
+  background:var(--superficie);transition:all .16s;flex-shrink:0}
+.vaso.lleno{background:var(--cobalto-vivo);border-color:var(--cobalto-vivo)}
+.vaso:active{transform:scale(.88)}
+
+/* ── Listas ── */
+.linea-lista{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:11px 0;border-bottom:1px solid var(--linea)}
+.linea-lista:last-child{border-bottom:0}
+.linea-lista.tachada .nombre-item{color:var(--tinta-suave);text-decoration:line-through}
+.nombre-item{font-size:14.5px;flex:1}
+.cant{font-size:13px;color:var(--tinta-media);font-weight:600;white-space:nowrap}
+.check{width:22px;height:22px;border-radius:6px;border:2px solid var(--linea-fuerte);
+  flex-shrink:0;display:grid;place-items:center;color:#fff;font-size:12px}
+.check.on{background:var(--jade);border-color:var(--jade)}
+
+/* ── Gráfica de progreso ── */
+.grafica{width:100%;height:170px;display:block}
+.grafica .rejilla{stroke:var(--linea);stroke-width:1}
+.grafica .linea{fill:none;stroke:var(--cobalto);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.grafica .area{fill:var(--cobalto-lavado);opacity:.6}
+.grafica .punto-d{fill:var(--superficie);stroke:var(--cobalto);stroke-width:2.5}
+.grafica text{font-size:10px;fill:var(--tinta-suave);font-family:var(--texto)}
+
+/* ── Hoja modal ── */
+.velo{position:fixed;inset:0;background:rgba(20,28,51,.42);z-index:100;
+  display:flex;align-items:flex-end;justify-content:center;animation:vela .2s ease}
+@keyframes vela{from{opacity:0}to{opacity:1}}
+.hoja{background:var(--superficie);width:100%;max-width:620px;border-radius:20px 20px 0 0;
+  padding:8px 18px calc(24px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto;
+  animation:sube .26s cubic-bezier(.2,.8,.3,1)}
+@keyframes sube{from{transform:translateY(100%)}to{transform:none}}
+.asa{width:38px;height:4px;background:var(--linea-fuerte);border-radius:100px;margin:8px auto 16px}
+.hoja h2{font-family:var(--display);font-size:21px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.hoja h3{font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--tinta-suave);margin:20px 0 8px}
+
+/* ── Vacíos ── */
+.vacio{text-align:center;padding:38px 22px;color:var(--tinta-media)}
+.vacio .glifo{font-size:34px;display:block;margin-bottom:10px;opacity:.5}
+.vacio p{margin:0 0 16px;font-size:14px}
+
+.nota{font-size:11.5px;color:var(--tinta-suave);line-height:1.45;margin-top:10px}
+.buscador{width:100%;padding:11px 14px;border:1.5px solid var(--linea);border-radius:var(--r-s);
+  background:var(--superficie);font-size:15px;margin-bottom:12px}
+.chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:10px;margin-bottom:4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{padding:6px 13px;border-radius:100px;background:var(--superficie);border:1.5px solid var(--linea);
+  font-size:12.5px;font-weight:600;color:var(--tinta-media);white-space:nowrap;flex-shrink:0}
+.chip.on{background:var(--cobalto);border-color:var(--cobalto);color:#fff}
+.aviso{background:var(--maiz-lavado);border:1px solid #F0DCA8;border-radius:var(--r-s);
+  padding:11px 13px;font-size:12.5px;color:#7A5200;line-height:1.45}
