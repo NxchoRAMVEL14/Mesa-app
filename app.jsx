@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RECETAS, TIEMPOS, REPARTO, PASILLOS } from './data/recetas.js';
+import { PantallaEntreno } from './entreno.jsx';
 import {
   almacen, FACTORES, energiaDiaria, macrosObjetivo, vasosObjetivo, edadDesde,
   factorPorcion, generarMenu, construirLista, iso, desdeIso, lunesDe, sumarDias,
-  etiquetaFecha, DIAS_CORTO, MESES,
+  etiquetaFecha, DIAS_CORTO, MESES, claveIng, catalogoIngredientes, aplicarDelta, descontar, devolver,
+  macrosDelDia, energiaDelDia, entrenosDelDia, gastoSesion, DIAS,
 } from './nucleo.js';
 
 const HOY = () => iso(new Date());
@@ -102,10 +104,14 @@ function FormaPersona({ inicial, onGuardar, onCerrar, onBorrar }) {
         <div className="campo"><label>Estatura (cm)</label>
           <input type="number" inputMode="decimal" value={f.estatura} onChange={set('estatura')} placeholder="172" /></div>
       </div>
-      <div className="campo"><label>Nivel de actividad</label>
+      <div className="campo"><label>Actividad diaria (sin contar entrenamientos)</label>
         <select value={f.actividad} onChange={set('actividad')}>
           {FACTORES.map((x) => <option key={x.k} value={x.k}>{x.nombre} — {x.desc}</option>)}
-        </select></div>
+        </select>
+        <p className="nota" style={{ marginTop: 4 }}>
+          Piensa sólo en tu día normal: trabajo, casa, traslados. Los entrenamientos se
+          registran aparte en la pestaña Entreno y suman a la meta el día que toquen.
+        </p></div>
       {prev && <div className="tarjeta plana" style={{ background: 'var(--cobalto-lavado)', border: 0, marginBottom: 14 }}>
         <div style={{ fontSize: 12.5, color: 'var(--cobalto)' }}>
           Necesidad estimada: <b>{prev.toLocaleString('es-MX')} kcal</b> al día · porción ×{factorPorcion({ ...f, peso: +f.peso, estatura: +f.estatura, edad: edadDesde(f.fechaNac) })}
@@ -155,10 +161,32 @@ function PantallaHoy({ estado, actualizar, recetas, abrirReceta }) {
   const porciones = comensales.reduce((s, p) => s + factorPorcion(p), 0) || 1;
   const yo = estado.personas[0];
 
+  // Al marcar una comida como hecha se descuentan sus ingredientes de la
+  // despensa. Se guarda el registro de lo consumido realmente, para que
+  // desmarcarla devuelva justo eso y nunca más de lo que había.
   const alternar = (t) => {
-    const hechos = { ...reg.hechos, [t]: !reg.hechos[t] };
-    actualizar({ bitacora: { ...estado.bitacora, [fecha]: { ...reg, hechos } } });
+    const activando = !reg.hechos[t];
+    const hechos = { ...reg.hechos, [t]: activando };
+    const gastos = { ...(reg.gasto || {}) };
+    const receta = indice[dia[t]];
+    let despensa = estado.despensa || {};
+
+    if (receta) {
+      if (activando) {
+        const res = descontar(despensa, receta, porciones);
+        despensa = res.despensa;
+        gastos[t] = res.aplicado;
+      } else {
+        despensa = devolver(despensa, gastos[t]);
+        delete gastos[t];
+      }
+    }
+    actualizar({
+      bitacora: { ...estado.bitacora, [fecha]: { ...reg, hechos, gasto: gastos } },
+      despensa,
+    });
   };
+
   const ponerAgua = (n) => actualizar({ bitacora: { ...estado.bitacora, [fecha]: { ...reg, agua: n === reg.agua ? n - 1 : n } } });
 
   const consumido = TIEMPOS.reduce((acc, t) => {
@@ -169,7 +197,8 @@ function PantallaHoy({ estado, actualizar, recetas, abrirReceta }) {
     return { kcal: acc.kcal + r.kcal * f, prot: acc.prot + r.prot * f, carb: acc.carb + r.carb * f, gras: acc.gras + r.gras * f };
   }, { kcal: 0, prot: 0, carb: 0, gras: 0 });
 
-  const meta = yo ? macrosObjetivo(yo) : null;
+  const meta = yo ? macrosDelDia(yo, fecha) : null;
+  const entrenosHoy = yo ? entrenosDelDia(yo, fecha) : [];
   const metaVasos = yo ? vasosObjetivo(yo) : 8;
   const hechosHoy = TIEMPOS.filter((t) => dia[t.k] && reg.hechos[t.k]).length;
   const totalHoy = TIEMPOS.filter((t) => dia[t.k]).length;
@@ -215,14 +244,33 @@ function PantallaHoy({ estado, actualizar, recetas, abrirReceta }) {
       </div>
 
       {meta && (<div className="tarjeta">
-        <div className="titulo-seccion" style={{ marginTop: 0, marginBottom: 12 }}>Tu aporte del día</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+          <div className="titulo-seccion" style={{ margin: 0 }}>Tu aporte del día</div>
+          {meta.extra > 0 && <span className="pildora jade">+{meta.extra} por entreno</span>}
+        </div>
         <Medidor etq="Energía" valor={consumido.kcal} meta={meta.kcal} unidad="kcal" />
         <Medidor etq="Proteína" valor={consumido.prot} meta={meta.prot} unidad="g" tono="jade" />
         <Medidor etq="Hidratos" valor={consumido.carb} meta={meta.carb} unidad="g" tono="maiz" />
         <Medidor etq="Grasa" valor={consumido.gras} meta={meta.gras} unidad="g" tono="achiote" />
-        <p className="nota">Se suma sólo lo que marcas como comido, con tu tamaño de porción. Son cifras aproximadas de referencia.</p>
+        <p className="nota">
+          Se suma sólo lo que marcas como comido, con tu tamaño de porción.
+          {meta.extra > 0
+            ? ` Hoy entrenas, así que la meta sube de ${meta.base.toLocaleString('es-MX')} a ${meta.kcal.toLocaleString('es-MX')} kcal.`
+            : ' Son cifras aproximadas de referencia.'}
+        </p>
       </div>)}
     </>)}
+
+    {entrenosHoy.length > 0 && (
+      <div className="tarjeta plana" style={{ background: 'var(--jade-lavado)', border: 0 }}>
+        <div className="comida-tiempo" style={{ color: 'var(--jade)' }}>Hoy entrenas</div>
+        {entrenosHoy.map((e) => (
+          <div key={e.id} style={{ fontSize: 14, fontWeight: 500, marginTop: 3 }}>
+            {e.nombre} · {e.min} min{e.hora ? ` a las ${e.hora}` : ''}
+          </div>
+        ))}
+      </div>
+    )}
 
     <div className="tarjeta">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -469,78 +517,236 @@ function AltaReceta({ onGuardar, onCerrar }) {
   );
 }
 
-/* ══════════ PANTALLA: Súper ══════════ */
+/* ══════════ PANTALLA: Súper y Despensa ══════════ */
 function PantallaSuper({ estado, actualizar, recetas }) {
+  const [pestana, setPestana] = useState('comprar');
   const [ancla, setAncla] = useState(lunesDe(new Date()));
   const desde = iso(ancla), hasta = iso(sumarDias(ancla, 6));
   const claveSemana = 'sem:' + desde;
   const marcados = estado.compras[claveSemana] || {};
+  const despensa = estado.despensa || {};
   const comensales = estado.personas.filter((p) => p.come);
   const porciones = comensales.reduce((s, p) => s + factorPorcion(p), 0) || 1;
 
   const lista = useMemo(
-    () => construirLista({ plan: estado.plan, recetas, porciones, pasillos: PASILLOS, desde, hasta }),
-    [estado.plan, recetas, porciones, desde, hasta]
+    () => construirLista({ plan: estado.plan, recetas, porciones, pasillos: PASILLOS, desde, hasta, despensa }),
+    [estado.plan, recetas, porciones, desde, hasta, despensa]
   );
+
+  const pasillos = Object.keys(lista);
+  const todas = pasillos.flatMap((p) => lista[p]);
+  const porComprar = todas.filter((l) => l.falta > 0);
+  const yaCubiertas = todas.length - porComprar.length;
+  const listos = porComprar.filter((l) => marcados[claveIng(l.item, l.unidad)]).length;
 
   const alternar = (clave) => actualizar({
     compras: { ...estado.compras, [claveSemana]: { ...marcados, [clave]: !marcados[clave] } },
   });
 
-  const pasillos = Object.keys(lista);
-  const total = pasillos.reduce((s, p) => s + lista[p].length, 0);
-  const listos = pasillos.reduce((s, p) => s + lista[p].filter((l) => marcados[l.item + '|' + l.unidad]).length, 0);
+  const guardarCompra = () => {
+    const delta = {};
+    for (const l of porComprar) {
+      const k = claveIng(l.item, l.unidad);
+      if (marcados[k]) delta[k] = l.falta;
+    }
+    if (!Object.keys(delta).length) return;
+    actualizar({
+      despensa: aplicarDelta(despensa, delta),
+      compras: { ...estado.compras, [claveSemana]: {} },
+    });
+  };
 
   const copiar = () => {
-    const texto = pasillos.map((p) => `${p.toUpperCase()}\n` + lista[p].map((l) => `- ${l.item}: ${l.cant} ${l.unidad}`).join('\n')).join('\n\n');
+    const texto = pasillos
+      .filter((p) => lista[p].some((l) => l.falta > 0))
+      .map((p) => `${p.toUpperCase()}\n` + lista[p].filter((l) => l.falta > 0)
+        .map((l) => `- ${l.item}: ${l.falta} ${l.unidad}`).join('\n')).join('\n\n');
     navigator.clipboard?.writeText(`Lista del súper · ${desde} al ${hasta}\n\n${texto}`);
   };
 
   return (<>
-    <div className="tarjeta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 14px' }}>
-      <button className="btn chico suave" onClick={() => setAncla(sumarDias(ancla, -7))} aria-label="Semana anterior">←</button>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontWeight: 600, fontSize: 14 }}>{ancla.getDate()} – {sumarDias(ancla, 6).getDate()}</div>
-        <div style={{ fontSize: 11.5, color: 'var(--tinta-suave)', textTransform: 'capitalize' }}>{MESES[ancla.getMonth()]}</div>
-      </div>
-      <button className="btn chico suave" onClick={() => setAncla(sumarDias(ancla, 7))} aria-label="Semana siguiente">→</button>
+    <div className="chips" style={{ marginBottom: 8 }}>
+      <button className={'chip' + (pestana === 'comprar' ? ' on' : '')} onClick={() => setPestana('comprar')}>
+        Por comprar{porComprar.length ? ` · ${porComprar.length}` : ''}
+      </button>
+      <button className={'chip' + (pestana === 'despensa' ? ' on' : '')} onClick={() => setPestana('despensa')}>
+        En despensa{Object.keys(despensa).length ? ` · ${Object.keys(despensa).length}` : ''}
+      </button>
     </div>
 
-    {!total ? (
-      <div className="tarjeta"><div className="vacio"><span className="glifo">🛒</span>
-        <p>Esta semana no tiene menú, así que no hay nada que comprar. Genera el menú y la lista aparece sola.</p></div></div>
-    ) : (<>
-      <div className="tarjeta plana" style={{ background: 'var(--cobalto-lavado)', border: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--cobalto)' }}>{listos} de {total} en el carrito</div>
-            <div style={{ fontSize: 12, color: 'var(--tinta-media)' }}>Cantidades para {Math.round(porciones * 10) / 10} porciones diarias</div>
-          </div>
-          <button className="btn chico linea" onClick={copiar}>Copiar</button>
+    {pestana === 'despensa' ? <Despensa {...{ estado, actualizar, recetas }} /> : (<>
+      <div className="tarjeta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 14px' }}>
+        <button className="btn chico suave" onClick={() => setAncla(sumarDias(ancla, -7))} aria-label="Semana anterior">←</button>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>{ancla.getDate()} – {sumarDias(ancla, 6).getDate()}</div>
+          <div style={{ fontSize: 11.5, color: 'var(--tinta-suave)', textTransform: 'capitalize' }}>{MESES[ancla.getMonth()]}</div>
         </div>
+        <button className="btn chico suave" onClick={() => setAncla(sumarDias(ancla, 7))} aria-label="Semana siguiente">→</button>
       </div>
-      {pasillos.map((p) => (
-        <div className="tarjeta" key={p}>
-          <div className="comida-tiempo" style={{ marginBottom: 6 }}>{p}</div>
-          {lista[p].map((l) => {
-            const clave = l.item + '|' + l.unidad;
-            const on = !!marcados[clave];
-            return (
-              <div className={'linea-lista' + (on ? ' tachada' : '')} key={clave} onClick={() => alternar(clave)} style={{ cursor: 'pointer' }}>
-                <span className={'check' + (on ? ' on' : '')}>{on ? '✓' : ''}</span>
-                <span className="nombre-item">{l.item}</span>
-                <span className="cant">{l.cant} {l.unidad}</span>
+
+      {!todas.length ? (
+        <div className="tarjeta"><div className="vacio"><span className="glifo">🛒</span>
+          <p>Esta semana no tiene menú, así que no hay nada que comprar. Genera el menú y la lista aparece sola.</p></div></div>
+      ) : !porComprar.length ? (
+        <div className="tarjeta"><div className="vacio"><span className="glifo">✓</span>
+          <p>Ya tienes en despensa todo lo que pide el menú de esta semana. No hace falta ir al súper.</p></div></div>
+      ) : (<>
+        <div className="tarjeta plana" style={{ background: 'var(--cobalto-lavado)', border: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--cobalto)' }}>{listos} de {porComprar.length} en el carrito</div>
+              <div style={{ fontSize: 12, color: 'var(--tinta-media)' }}>
+                Para {Math.round(porciones * 10) / 10} porciones diarias
+                {yaCubiertas > 0 && ` · ${yaCubiertas} ya en despensa`}
               </div>
-            );
-          })}
+            </div>
+            <button className="btn chico linea" onClick={copiar}>Copiar</button>
+          </div>
         </div>
-      ))}
+
+        {listos > 0 && (
+          <button className="btn" style={{ marginBottom: 12 }} onClick={guardarCompra}>
+            Guardar {listos} {listos === 1 ? 'artículo' : 'artículos'} en la despensa
+          </button>
+        )}
+
+        {pasillos.map((p) => {
+          const faltantes = lista[p].filter((l) => l.falta > 0);
+          if (!faltantes.length) return null;
+          return (
+            <div className="tarjeta" key={p}>
+              <div className="comida-tiempo" style={{ marginBottom: 6 }}>{p}</div>
+              {faltantes.map((l) => {
+                const clave = claveIng(l.item, l.unidad);
+                const on = !!marcados[clave];
+                return (
+                  <div className={'linea-lista' + (on ? ' tachada' : '')} key={clave}
+                    onClick={() => alternar(clave)} style={{ cursor: 'pointer' }}>
+                    <span className={'check' + (on ? ' on' : '')}>{on ? '✓' : ''}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="nombre-item">{l.item}</div>
+                      {l.tengo > 0 && (
+                        <div style={{ fontSize: 11, color: 'var(--jade)' }}>
+                          ya tienes {l.tengo} de {l.cant} {l.unidad}
+                        </div>
+                      )}
+                    </div>
+                    <span className="cant">{l.falta} {l.unidad}</span>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </>)}
     </>)}
   </>);
 }
 
+/* ══════════ Despensa ══════════ */
+function Despensa({ estado, actualizar, recetas }) {
+  const [alta, setAlta] = useState(false);
+  const despensa = estado.despensa || {};
+  const catalogo = useMemo(() => catalogoIngredientes(recetas), [recetas]);
+
+  const entradas = Object.entries(despensa).map(([k, cant]) => {
+    const [item, unidad] = k.split('|');
+    return { k, item, unidad, cant };
+  }).sort((a, b) => a.item.localeCompare(b.item));
+
+  const buscarPasillo = (item) => {
+    for (const [n, items] of Object.entries(PASILLOS)) if (items.includes(item)) return n;
+    return 'Otros';
+  };
+  const porPasillo = {};
+  for (const e of entradas) {
+    const p = buscarPasillo(e.item);
+    (porPasillo[p] = porPasillo[p] || []).push(e);
+  }
+
+  const ajustar = (k, delta) => actualizar({ despensa: aplicarDelta(despensa, { [k]: delta }) });
+  const quitar = (k) => { const d = { ...despensa }; delete d[k]; actualizar({ despensa: d }); };
+
+  return (<>
+    <button className="btn" style={{ marginBottom: 12 }} onClick={() => setAlta(true)}>+ Agregar a la despensa</button>
+
+    {!entradas.length ? (
+      <div className="tarjeta"><div className="vacio"><span className="glifo">🫙</span>
+        <p>La despensa está vacía. Registra lo que ya tienes en casa y la lista del súper dejará de pedírtelo.</p></div></div>
+    ) : Object.keys(porPasillo).sort().map((p) => (
+      <div className="tarjeta" key={p}>
+        <div className="comida-tiempo" style={{ marginBottom: 6 }}>{p}</div>
+        {porPasillo[p].map((e) => (
+          <div className="linea-lista" key={e.k}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="nombre-item">{e.item}</div>
+              <button onClick={() => quitar(e.k)}
+                style={{ fontSize: 11, color: 'var(--achiote)', padding: '2px 0' }}>Quitar</button>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button className="btn chico suave" onClick={() => ajustar(e.k, -paso(e.unidad))} aria-label="Restar">−</button>
+              <span className="cant" style={{ minWidth: 62, textAlign: 'center' }}>{e.cant} {e.unidad}</span>
+              <button className="btn chico suave" onClick={() => ajustar(e.k, paso(e.unidad))} aria-label="Sumar">+</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    ))}
+
+    <p className="nota">Cuando marcas una comida como hecha en la pantalla Hoy, sus ingredientes se descuentan solos de aquí. Si la desmarcas, regresan.</p>
+
+    {alta && <AltaDespensa catalogo={catalogo} despensa={despensa} onCerrar={() => setAlta(false)}
+      onGuardar={(k, cant) => { actualizar({ despensa: aplicarDelta(despensa, { [k]: cant }) }); setAlta(false); }} />}
+  </>);
+}
+
+const paso = (u) => (u === 'g' || u === 'ml' ? 50 : 1);
+
+function AltaDespensa({ catalogo, despensa, onGuardar, onCerrar }) {
+  const [q, setQ] = useState('');
+  const [elegido, setElegido] = useState(null);
+  const [cant, setCant] = useState('');
+
+  const sugerencias = q.trim()
+    ? catalogo.filter((c) => c.item.toLowerCase().includes(q.toLowerCase())).slice(0, 12)
+    : catalogo.slice(0, 12);
+
+  if (elegido) {
+    const k = claveIng(elegido.item, elegido.unidad);
+    const ya = despensa[k] || 0;
+    return (
+      <Hoja titulo={elegido.item} sub={ya ? `Ya tienes ${ya} ${elegido.unidad} registrados.` : null} onCerrar={onCerrar}>
+        <div className="campo">
+          <label>¿Cuánto agregas? (en {elegido.unidad})</label>
+          <input type="number" inputMode="decimal" autoFocus value={cant}
+            onChange={(e) => setCant(e.target.value)} placeholder={String(paso(elegido.unidad) * 4)} />
+        </div>
+        <div className="fila-btn">
+          <button className="btn linea" onClick={() => setElegido(null)}>Atrás</button>
+          <button className="btn" disabled={!cant || +cant <= 0} onClick={() => onGuardar(k, +cant)}>Agregar</button>
+        </div>
+      </Hoja>
+    );
+  }
+
+  return (
+    <Hoja titulo="Agregar a la despensa" sub="Busca el ingrediente tal como lo usan las recetas." onCerrar={onCerrar}>
+      <input className="buscador" autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Jitomate, arroz, huevo…" />
+      {!sugerencias.length ? (
+        <p className="nota">Ningún ingrediente coincide. Sólo se pueden guardar los que aparecen en alguna receta.</p>
+      ) : sugerencias.map((c) => (
+        <div className="linea-lista" key={claveIng(c.item, c.unidad)} onClick={() => setElegido(c)} style={{ cursor: 'pointer' }}>
+          <span className="nombre-item">{c.item}</span>
+          <span className="cant">{despensa[claveIng(c.item, c.unidad)] ? `${despensa[claveIng(c.item, c.unidad)]} ${c.unidad}` : c.unidad}</span>
+        </div>
+      ))}
+    </Hoja>
+  );
+}
+
 /* ══════════ PANTALLA: Progreso ══════════ */
 function PantallaProgreso({ estado, actualizar }) {
+  const [vista, setVista] = useState('medidas');
   const [quien, setQuien] = useState(estado.personas[0]?.id || '');
   const [alta, setAlta] = useState(false);
   const persona = estado.personas.find((p) => p.id === quien) || estado.personas[0];
@@ -562,6 +768,11 @@ function PantallaProgreso({ estado, actualizar }) {
   if (!persona) return <div className="tarjeta"><div className="vacio"><p>Primero agrega a alguien a la familia.</p></div></div>;
 
   return (<>
+    <div className="chips">
+      <button className={'chip' + (vista === 'medidas' ? ' on' : '')} onClick={() => setVista('medidas')}>Medidas</button>
+      <button className={'chip' + (vista === 'familia' ? ' on' : '')} onClick={() => setVista('familia')}>Familia</button>
+    </div>
+    {vista === 'familia' ? <PantallaFamilia {...{ estado, actualizar }} /> : <>
     {estado.personas.length > 1 && (
       <div className="chips">
         {estado.personas.map((p) => (
@@ -609,6 +820,7 @@ function PantallaProgreso({ estado, actualizar }) {
       </div>
     </>)}
 
+    </>}
     {alta && <AltaMedida persona={persona} onCerrar={() => setAlta(false)} onGuardar={(m) => {
       const otras = estado.medidas.filter((x) => !(x.personaId === m.personaId && x.fecha === m.fecha));
       const personas = m.peso
@@ -738,7 +950,7 @@ function Bienvenida({ onListo }) {
 }
 
 /* ══════════ Raíz ══════════ */
-const VACIO = { personas: [], plan: {}, bitacora: {}, medidas: [], misRecetas: [], compras: {} };
+const VACIO = { personas: [], plan: {}, bitacora: {}, medidas: [], misRecetas: [], compras: {}, despensa: {}, rutina: null };
 
 function App() {
   const [estado, setEstado] = useState(null);
@@ -748,7 +960,7 @@ function App() {
   const [nuevaReceta, setNuevaReceta] = useState(false);
 
   useEffect(() => {
-    (async () => setEstado(await almacen.leer('estado', VACIO)))();
+    (async () => setEstado({ ...VACIO, ...(await almacen.leer('estado', VACIO)) }))();
   }, []);
 
   const actualizar = useCallback((parche) => {
@@ -771,10 +983,10 @@ function App() {
   const PANTALLAS = {
     hoy: { glifo: '☀', etq: 'Hoy', titulo: 'Hoy', sub: 'Marca cada tiempo conforme lo comas.' },
     semana: { glifo: '▦', etq: 'Semana', titulo: 'La semana', sub: 'Un azulejo por tiempo de comida.' },
+    entreno: { glifo: '⚡', etq: 'Entreno', titulo: 'Entrenamiento', sub: 'Tus sesiones, tu rutina y cómo van con la comida.' },
     recetario: { glifo: '☰', etq: 'Recetario', titulo: 'Recetario', sub: `${recetas.length} platillos de casa.` },
-    super: { glifo: '⛬', etq: 'Súper', titulo: 'Lista del súper', sub: 'Todo lo que pide el menú de la semana.' },
-    progreso: { glifo: '◔', etq: 'Progreso', titulo: 'Progreso', sub: 'Peso y medidas a lo largo del tiempo.' },
-    familia: { glifo: '◈', etq: 'Familia', titulo: 'La familia', sub: 'Quién come y cuánto le toca.' },
+    super: { glifo: '⛬', etq: 'Súper', titulo: 'Súper y despensa', sub: 'Lo que falta comprar y lo que ya hay en casa.' },
+    progreso: { glifo: '◔', etq: 'Progreso', titulo: 'Progreso', sub: 'Medidas, tendencias y quién come en casa.' },
   };
   const p = PANTALLAS[pantalla];
 
@@ -789,10 +1001,10 @@ function App() {
       <div className="lienzo">
         {pantalla === 'hoy' && <PantallaHoy {...{ estado, actualizar, recetas, abrirReceta }} />}
         {pantalla === 'semana' && <PantallaSemana {...{ estado, actualizar, recetas, abrirReceta }} />}
+        {pantalla === 'entreno' && <PantallaEntreno {...{ estado, actualizar, recetas, Hoja }} />}
         {pantalla === 'recetario' && <PantallaRecetario recetas={recetas} porciones={porciones} onNueva={() => setNuevaReceta(true)} />}
         {pantalla === 'super' && <PantallaSuper {...{ estado, actualizar, recetas }} />}
         {pantalla === 'progreso' && <PantallaProgreso {...{ estado, actualizar }} />}
-        {pantalla === 'familia' && <PantallaFamilia {...{ estado, actualizar }} />}
       </div>
 
       <nav className="nav"><div className="nav-int">
