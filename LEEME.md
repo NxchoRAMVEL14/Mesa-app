@@ -1,16 +1,31 @@
 # Mesa · Menús de la casa
 
 PWA para planear desayuno, almuerzo, comida, colación y cena de toda la familia,
-con lista del súper automática y seguimiento de peso, medidas y agua.
+con despensa, lista del súper automática y seguimiento de peso, medidas y agua.
+
+## Cómo funciona la despensa
+
+La pantalla **Súper** tiene dos pestañas.
+
+- **Por comprar**: la lista de la semana, ya descontando lo que hay en despensa.
+  Cada renglón muestra sólo lo que falta, y si tienes una parte lo indica.
+  Al tachar lo que echaste al carrito, el botón *Guardar en la despensa* pasa
+  esas cantidades al inventario de un golpe.
+- **En despensa**: lo que hay en casa, agrupado por pasillo, con botones para
+  subir o bajar cantidades.
+
+El ciclo se cierra solo: cuando marcas una comida como hecha en **Hoy**, sus
+ingredientes se descuentan de la despensa. Si la desmarcas, regresan — y regresa
+exactamente lo que se consumió, nunca más de lo que había.
 
 ## Subir a GitHub Pages
 
 1. Crea un repositorio nuevo (por ejemplo `Mesa`).
 2. Arrastra **todo el contenido de esta carpeta** a la interfaz web de GitHub.
-   Van los archivos sueltos, no la carpeta: `index.html`, `app.js`, `estilos.css`,
-   `manifest.json`, `sw.js`, `.nojekyll`, `icono-192.png`, `icono-512.png` y `src/`.
-3. En **Settings → Pages**, elige la rama `main` y la carpeta `/ (root)`.
-4. Espera 1–2 minutos y abre `https://TU-USUARIO.github.io/Mesa/`.
+   Van los archivos sueltos, no la carpeta.
+3. GitHub te preguntará si quieres reemplazar los archivos que ya existen. Acepta.
+4. En **Settings → Pages**, elige la rama `main` y la carpeta `/ (root)`.
+5. Espera 1–2 minutos y abre `https://TU-USUARIO.github.io/Mesa/`.
 
 El archivo `.nojekyll` es indispensable: sin él, GitHub Pages intenta procesar
 el sitio con Jekyll y el despliegue se atora.
@@ -42,7 +57,20 @@ npx esbuild src/app.jsx --bundle --minify --format=iife --target=es2018 \
 ```
 
 Si cambias `sw.js` o los archivos en caché, sube el número de versión en
-`const CACHE = 'mesa-v1'` para que los teléfonos tomen la versión nueva.
+`const CACHE = 'mesa-v2'` para que los teléfonos tomen la versión nueva.
+
+## Si la página no abre
+
+- **Revisa mayúsculas en la URL.** Las rutas de GitHub Pages distinguen entre
+  mayúsculas y minúsculas: si el repo es `Mesa-app`, la liga es
+  `https://TU-USUARIO.github.io/Mesa-app/`, no `/mesa-app/`.
+- **404** significa que Pages no está publicado todavía o la rama está mal.
+  Revisa **Settings → Pages**.
+- **ERR_CONNECTION_TIMED_OUT** no es problema del repo: la petición nunca llegó.
+  Suele ser la red bloqueando el dominio `*.github.io`. Pruébalo con datos
+  móviles para descartarlo.
+- Si ya cargó antes y ves la versión vieja, es el service worker. Recarga con
+  Ctrl+Shift+R, o desinstala y reinstala la PWA.
 
 ## Sobre las cifras nutricionales
 
