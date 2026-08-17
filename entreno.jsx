@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { EJERCICIOS, PATRONES, LUGARES, OBJETIVOS, DURACIONES } from './data/ejercicios.js';
+import { FiguraEjercicio } from './figuras.jsx';
 import {
   TIPOS_ENTRENO, gastoSesion, generarRutina, cruzarDias, energiaDelDia,
   iso, desdeIso, lunesDe, sumarDias, etiquetaFecha, DIAS, DIAS_CORTO, MESES,
@@ -173,6 +174,7 @@ function PlanRutina({ estado, actualizar, persona, Hoja }) {
         </div>
         {s.ejercicios.map((x) => (
           <div className="linea-lista" key={x.id} onClick={() => setDetalle(x)} style={{ cursor: 'pointer' }}>
+            <FiguraEjercicio id={x.id} size={50} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="comida-tiempo">{PATRONES[x.patron]}</div>
               <div style={{ fontSize: 14, fontWeight: 500 }}>{x.nombre}</div>
@@ -197,6 +199,9 @@ function PlanRutina({ estado, actualizar, persona, Hoja }) {
     {detalle && (
       <Hoja titulo={detalle.nombre} sub={`${PATRONES[detalle.patron]} · ${detalle.series} series de ${detalle.reps}`}
         onCerrar={() => setDetalle(null)}>
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 14px' }}>
+          <FiguraEjercicio id={detalle.id} size={132} />
+        </div>
         <p style={{ fontSize: 14.5, margin: '4px 0 14px' }}>{detalle.nota}</p>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <span className="pildora gris">{detalle.equipo === 'ninguno' ? 'Sin equipo' : detalle.equipo}</span>

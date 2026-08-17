@@ -177,3 +177,12 @@ input,select,textarea{font:inherit;color:inherit}
 .chip.on{background:var(--cobalto);border-color:var(--cobalto);color:#fff}
 .aviso{background:var(--maiz-lavado);border:1px solid #F0DCA8;border-radius:var(--r-s);
   padding:11px 13px;font-size:12.5px;color:#7A5200;line-height:1.45}
+
+/* ── Botón de ayuda en el encabezado ── */
+.cabecera-fila{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.btn-ayuda{width:36px;height:36px;border-radius:11px;background:var(--superficie);
+  border:1px solid var(--linea);color:var(--tinta-media);font-size:16px;font-weight:700;
+  display:grid;place-items:center;flex-shrink:0;margin-top:4px;box-shadow:var(--sombra);
+  transition:all .15s}
+.btn-ayuda:active{transform:scale(.93)}
+.btn-ayuda.on{background:var(--cobalto);border-color:var(--cobalto);color:#fff}

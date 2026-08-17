@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RECETAS, TIEMPOS, REPARTO, PASILLOS } from './data/recetas.js';
 import { PantallaEntreno } from './entreno.jsx';
+import { IlustracionPlatillo } from './platillos.jsx';
+import { PantallaAyuda, VERSION } from './ayuda.jsx';
 import {
   almacen, FACTORES, energiaDiaria, macrosObjetivo, vasosObjetivo, edadDesde,
   factorPorcion, generarMenu, construirLista, iso, desdeIso, lunesDe, sumarDias,
@@ -129,6 +131,9 @@ function DetalleReceta({ receta, porciones, onCerrar, onCambiar }) {
   const esc = (n) => Math.round(n * porciones * 10) / 10;
   return (
     <Hoja titulo={receta.nombre} sub={`${receta.min} min · ${receta.kcal} kcal por porción`} onCerrar={onCerrar}>
+      <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 14px' }}>
+        <IlustracionPlatillo receta={receta} size={116} radio={16} />
+      </div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
         {receta.tags.map((t) => <span key={t} className="pildora gris">{t}</span>)}
       </div>
@@ -233,6 +238,9 @@ function PantallaHoy({ estado, actualizar, recetas, abrirReceta }) {
             <div className="comida" key={t.k}>
               <button className={'marca' + (on ? ' on' : '')} onClick={() => alternar(t.k)}
                 aria-label={`Marcar ${t.nombre} como comido`} aria-pressed={on}>{on ? '✓' : ''}</button>
+              <div onClick={() => abrirReceta(r, fecha, t.k)} style={{ cursor: 'pointer' }}>
+                <IlustracionPlatillo receta={r} size={52} radio={9} />
+              </div>
               <div className="comida-cuerpo" onClick={() => abrirReceta(r, fecha, t.k)} style={{ cursor: 'pointer' }}>
                 <div className="comida-tiempo">{t.nombre} · {t.hora}</div>
                 <div className={'comida-nombre' + (on ? ' tachado' : '')}>{r.nombre}</div>
@@ -377,6 +385,7 @@ function PantallaSemana({ estado, actualizar, recetas, abrirReceta }) {
             if (!r) return null;
             return (
               <div className="linea-lista" key={t.k} onClick={() => abrirReceta(r, d, t.k)} style={{ cursor: 'pointer' }}>
+                <IlustracionPlatillo receta={r} size={40} radio={8} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="comida-tiempo">{t.nombre}</div>
                   <div style={{ fontSize: 14, fontWeight: 500 }}>{r.nombre}</div>
@@ -442,6 +451,7 @@ function PantallaRecetario({ recetas, porciones, onNueva }) {
       <div className="tarjeta">
         {lista.map((r) => (
           <div className="linea-lista" key={r.id} onClick={() => setVer(r)} style={{ cursor: 'pointer' }}>
+            <IlustracionPlatillo receta={r} size={46} radio={8} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14.5, fontWeight: 500 }}>{r.nombre}</div>
               <div style={{ fontSize: 11.5, color: 'var(--tinta-suave)', marginTop: 2 }}>
@@ -894,7 +904,8 @@ function PantallaFamilia({ estado, actualizar }) {
     <div className="aviso" style={{ marginTop: 14 }}>
       Todo se guarda en este dispositivo. Si borras los datos del navegador o desinstalas la app, se pierde. Exporta un respaldo de vez en cuando desde el botón de abajo.
     </div>
-    <button className="btn linea" style={{ marginTop: 10 }} onClick={() => {
+    <p className="nota" style={{ textAlign: 'center' }}>Mesa versión {VERSION}</p>
+    <button className="btn linea" style={{ marginTop: 4 }} onClick={() => {
       const blob = new Blob([JSON.stringify(estado, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -923,6 +934,7 @@ function Cambiador({ tiempo, recetas, onElegir, onCerrar }) {
       <input className="buscador" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar platillo" />
       {aptas.map((r) => (
         <div className="linea-lista" key={r.id} onClick={() => onElegir(r.id)} style={{ cursor: 'pointer' }}>
+          <IlustracionPlatillo receta={r} size={42} radio={8} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14.5, fontWeight: 500 }}>{r.nombre}</div>
             <div style={{ fontSize: 11.5, color: 'var(--tinta-suave)' }}>{r.kcal} kcal · {r.min} min</div>
@@ -954,7 +966,11 @@ const VACIO = { personas: [], plan: {}, bitacora: {}, medidas: [], misRecetas: [
 
 function App() {
   const [estado, setEstado] = useState(null);
-  const [pantalla, setPantalla] = useState('hoy');
+  const [pantalla, setPantallaRaw] = useState('hoy');
+  const [previa, setPrevia] = useState('hoy');
+  const setPantalla = useCallback((p) => {
+    setPantallaRaw((actual) => { if (p === 'ayuda' && actual !== 'ayuda') setPrevia(actual); return p; });
+  }, []);
   const [detalle, setDetalle] = useState(null);
   const [cambiar, setCambiar] = useState(null);
   const [nuevaReceta, setNuevaReceta] = useState(false);
@@ -988,14 +1004,23 @@ function App() {
     super: { glifo: '⛬', etq: 'Súper', titulo: 'Súper y despensa', sub: 'Lo que falta comprar y lo que ya hay en casa.' },
     progreso: { glifo: '◔', etq: 'Progreso', titulo: 'Progreso', sub: 'Medidas, tendencias y quién come en casa.' },
   };
-  const p = PANTALLAS[pantalla];
+  const p = PANTALLAS[pantalla] || PANTALLAS.hoy;
 
   return (
     <div className="app">
       <div className="encabezado">
-        <p className="eyebrow">Mesa</p>
-        <h1>{p.titulo}</h1>
-        <p className="sub">{p.sub}</p>
+        <div className="cabecera-fila">
+          <div style={{ minWidth: 0 }}>
+            <p className="eyebrow">Mesa</p>
+            <h1>{pantalla === 'ayuda' ? 'Ayuda' : p.titulo}</h1>
+            <p className="sub">{pantalla === 'ayuda' ? 'Cómo usar la app y qué cambió en cada versión.' : p.sub}</p>
+          </div>
+          <button className={'btn-ayuda' + (pantalla === 'ayuda' ? ' on' : '')}
+            aria-label={pantalla === 'ayuda' ? 'Cerrar ayuda' : 'Abrir ayuda y manual'}
+            onClick={() => setPantalla(pantalla === 'ayuda' ? previa : 'ayuda')}>
+            {pantalla === 'ayuda' ? '✕' : '?'}
+          </button>
+        </div>
       </div>
 
       <div className="lienzo">
@@ -1005,6 +1030,7 @@ function App() {
         {pantalla === 'recetario' && <PantallaRecetario recetas={recetas} porciones={porciones} onNueva={() => setNuevaReceta(true)} />}
         {pantalla === 'super' && <PantallaSuper {...{ estado, actualizar, recetas }} />}
         {pantalla === 'progreso' && <PantallaProgreso {...{ estado, actualizar }} />}
+        {pantalla === 'ayuda' && <PantallaAyuda Hoja={Hoja} />}
       </div>
 
       <nav className="nav"><div className="nav-int">

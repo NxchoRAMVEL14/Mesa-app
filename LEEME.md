@@ -4,6 +4,28 @@ PWA para planear desayuno, almuerzo, comida, colación y cena de toda la familia
 con despensa, lista del súper automática, entrenamiento y seguimiento de peso,
 medidas y agua.
 
+## Manual de usuario
+
+El manual vive **dentro de la app**: botón **?** arriba a la derecha, en
+cualquier pantalla. Tiene ocho secciones (primeros pasos, el día a día, la tira
+de la semana, súper y despensa, entrenamiento, recetario, progreso y respaldos,
+y de dónde salen los números). Se puso ahí a propósito: un manual en un archivo
+aparte no se consulta nunca.
+
+Ese mismo botón, pestaña *Novedades*, tiene las notas de cada versión. También
+están en `NOTAS-DE-VERSION.md`.
+
+## Ilustraciones
+
+Los platillos y los ejercicios traen dibujo de referencia. Están **dibujados con
+código** dentro de la app, no son imágenes descargadas: así funcionan sin
+conexión, se ven nítidos en cualquier pantalla y no dependen de enlaces externos.
+Son esquemas para reconocer algo de un vistazo, no fotografías.
+
+Si agregas recetas propias, reciben dibujo automáticamente: la app adivina la
+familia del platillo por el nombre (*"Tacos de la abuela"* → tacos) y si no
+reconoce nada usa un plato genérico.
+
 ## Entrenamiento
 
 La pestaña **Entreno** tiene tres partes.
@@ -73,7 +95,7 @@ npx esbuild src/app.jsx --bundle --minify --format=iife --target=es2018 \
 ```
 
 Si cambias `sw.js` o los archivos en caché, sube el número de versión en
-`const CACHE = 'mesa-v3'` para que los teléfonos tomen la versión nueva.
+`const CACHE = 'mesa-v4'` para que los teléfonos tomen la versión nueva.
 
 ## Si la página no abre
 
