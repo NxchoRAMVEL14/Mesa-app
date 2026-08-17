@@ -282,6 +282,12 @@ function Bitacora({ estado, actualizar, persona, recetas, Hoja }) {
       <button className="btn chico suave" onClick={() => setAncla(sumarDias(ancla, 7))} aria-label="Semana siguiente">→</button>
     </div>
 
+    {(estado.personas[0] || {}).recuperacion && (
+      <div className="aviso" style={{ marginBottom: 12 }}>
+        Modo recuperación activo: los entrenamientos programados están en pausa y la app no
+        compara tu comida contra la meta. Puedes apagarlo en Progreso → Familia.
+      </div>
+    )}
     {sesionesSemana > 0 && (
       <div className="tarjeta plana" style={{ background: 'var(--jade-lavado)', border: 0 }}>
         <div style={{ fontSize: 13, color: 'var(--jade)' }}>
@@ -296,7 +302,7 @@ function Bitacora({ estado, actualizar, persona, recetas, Hoja }) {
       const d = desdeIso(f.fecha);
       // Sólo se compara comida contra meta si el día ya se registró completo.
       const completo = f.tiemposPlan > 0 && f.tiemposHechos === f.tiemposPlan;
-      const corto = completo && f.meta && f.consumido < f.meta * 0.8;
+      const corto = completo && !f.recuperacion && f.meta && f.consumido < f.meta * 0.8;
       return (
         <div className="tarjeta" key={f.fecha}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
@@ -324,7 +330,9 @@ function Bitacora({ estado, actualizar, persona, recetas, Hoja }) {
           ))}
 
           <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', margin: '10px 0 0' }}>
-            <span className="pildora gris">{f.tiemposHechos} de {f.tiemposPlan} comidas</span>
+            <span className="pildora gris">
+              {f.tiemposHechos} de {f.tiemposPlan} comidas{f.extras ? ` + ${f.extras}` : ''}
+            </span>
             {f.consumido > 0 && <span className="pildora">{f.consumido.toLocaleString('es-MX')} kcal</span>}
             {f.meta && <span className="pildora gris">meta {f.meta.toLocaleString('es-MX')}</span>}
             {f.gastado > 0 && <span className="pildora jade">+{f.gastado} por entreno</span>}

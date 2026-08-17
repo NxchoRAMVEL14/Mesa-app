@@ -26,6 +26,29 @@ Si agregas recetas propias, reciben dibujo automáticamente: la app adivina la
 familia del platillo por el nombre (*"Tacos de la abuela"* → tacos) y si no
 reconoce nada usa un plato genérico.
 
+## Registrar comida fuera del menú
+
+En **Hoy**, el botón *+ Agregar lo que comí* registra cualquier cosa que no
+estuviera en el plan. Tres vías: buscar en la lista de 140 alimentos comunes
+que funciona sin conexión, escanear el código de barras, o escribirlo a mano.
+Lo registrado suma a los totales del día igual que el menú planeado.
+
+El escáner consulta **Open Food Facts**, base abierta de productos sin llave de
+API. Los datos los aportan voluntarios, así que pueden estar incompletos: la
+app siempre los muestra para revisarlos antes de guardar. Cada producto
+consultado se guarda en el teléfono, así el segundo escaneo del mismo código no
+necesita internet.
+
+## Modo recuperación
+
+Se activa en **Progreso → Familia**. Mientras está encendido, los
+entrenamientos programados no suman a la meta del día y la app deja de señalar
+cuando se come por debajo de ella. Las metas siguen visibles como referencia.
+
+Existe para no señalar a alguien convaleciente por comer poco. Durante una
+recuperación quien decide qué y cuánto se come es el médico que atiende, no la
+app.
+
 ## Entrenamiento
 
 La pestaña **Entreno** tiene tres partes.
@@ -95,7 +118,7 @@ npx esbuild src/app.jsx --bundle --minify --format=iife --target=es2018 \
 ```
 
 Si cambias `sw.js` o los archivos en caché, sube el número de versión en
-`const CACHE = 'mesa-v4'` para que los teléfonos tomen la versión nueva.
+`const CACHE = 'mesa-v5'` para que los teléfonos tomen la versión nueva.
 
 ## Si la página no abre
 

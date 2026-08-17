@@ -4,6 +4,7 @@ import { RECETAS, TIEMPOS, REPARTO, PASILLOS } from './data/recetas.js';
 import { PantallaEntreno } from './entreno.jsx';
 import { IlustracionPlatillo } from './platillos.jsx';
 import { PantallaAyuda, VERSION } from './ayuda.jsx';
+import { AgregarComida } from './manual.jsx';
 import {
   almacen, FACTORES, energiaDiaria, macrosObjetivo, vasosObjetivo, edadDesde,
   factorPorcion, generarMenu, construirLista, iso, desdeIso, lunesDe, sumarDias,
@@ -159,6 +160,7 @@ function DetalleReceta({ receta, porciones, onCerrar, onCambiar }) {
 /* ══════════ PANTALLA: Hoy ══════════ */
 function PantallaHoy({ estado, actualizar, recetas, abrirReceta }) {
   const [fecha, setFecha] = useState(HOY());
+  const [agregando, setAgregando] = useState(false);
   const dia = estado.plan[fecha] || {};
   const reg = estado.bitacora[fecha] || { hechos: {}, agua: 0 };
   const indice = useMemo(() => Object.fromEntries(recetas.map((r) => [r.id, r])), [recetas]);
@@ -194,13 +196,38 @@ function PantallaHoy({ estado, actualizar, recetas, abrirReceta }) {
 
   const ponerAgua = (n) => actualizar({ bitacora: { ...estado.bitacora, [fecha]: { ...reg, agua: n === reg.agua ? n - 1 : n } } });
 
+  const extras = reg.extras || [];
+  const guardarExtra = (item) => {
+    // Se recuerdan los últimos alimentos registrados para volver a usarlos
+    // con un toque: la fricción diaria es lo que hace que se abandone el registro.
+    const limpio = { nombre: item.nombre, cant: item.cant, unidad: item.unidad,
+      kcal: item.kcal, prot: item.prot, carb: item.carb, gras: item.gras, fuente: item.fuente };
+    const previos = (estado.frecuentes || []).filter((x) => x.nombre !== limpio.nombre);
+    actualizar({
+      bitacora: { ...estado.bitacora, [fecha]: { ...reg, extras: [...extras, item] } },
+      frecuentes: [limpio, ...previos].slice(0, 12),
+    });
+    setAgregando(false);
+  };
+  const quitarExtra = (id) => actualizar({
+    bitacora: { ...estado.bitacora, [fecha]: { ...reg, extras: extras.filter((x) => x.id !== id) } },
+  });
+  const guardarCache = (prod) => actualizar({
+    productos: { ...(estado.productos || {}), [prod.codigo]: prod },
+  });
+
+  const consumidoExtras = extras.reduce((acc, x) => ({
+    kcal: acc.kcal + (x.kcal || 0), prot: acc.prot + (x.prot || 0),
+    carb: acc.carb + (x.carb || 0), gras: acc.gras + (x.gras || 0),
+  }), { kcal: 0, prot: 0, carb: 0, gras: 0 });
+
   const consumido = TIEMPOS.reduce((acc, t) => {
     if (!reg.hechos[t.k] || !dia[t.k]) return acc;
     const r = indice[dia[t.k]];
     if (!r) return acc;
     const f = yo ? factorPorcion(yo) : 1;
     return { kcal: acc.kcal + r.kcal * f, prot: acc.prot + r.prot * f, carb: acc.carb + r.carb * f, gras: acc.gras + r.gras * f };
-  }, { kcal: 0, prot: 0, carb: 0, gras: 0 });
+  }, { ...consumidoExtras });
 
   const meta = yo ? macrosDelDia(yo, fecha) : null;
   const entrenosHoy = yo ? entrenosDelDia(yo, fecha) : [];
@@ -219,15 +246,16 @@ function PantallaHoy({ estado, actualizar, recetas, abrirReceta }) {
       <button className="btn chico suave" onClick={() => setFecha(iso(sumarDias(desdeIso(fecha), 1)))} aria-label="Día siguiente">→</button>
     </div>
 
-    {totalHoy === 0 ? (
+    {totalHoy === 0 && !extras.length ? (
       <div className="tarjeta"><div className="vacio">
         <span className="glifo">🍽</span>
-        <p>No hay menú para este día. Genera la semana desde la pestaña Semana.</p>
+        <p>No hay menú para este día. Puedes generar la semana desde la pestaña Semana, o registrar a mano lo que comiste.</p>
+        <button className="btn" onClick={() => setAgregando(true)}>+ Agregar lo que comí</button>
       </div></div>
     ) : (<>
       <div className="tarjeta">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-          <span className="pildora">{hechosHoy} de {totalHoy} registrados</span>
+          <span className="pildora">{hechosHoy} de {totalHoy} registrados{extras.length ? ` · ${extras.length} extra` : ''}</span>
           <span style={{ fontSize: 11.5, color: 'var(--tinta-suave)' }}>{comensales.length} en la mesa</span>
         </div>
         {TIEMPOS.map((t) => {
@@ -249,27 +277,52 @@ function PantallaHoy({ estado, actualizar, recetas, abrirReceta }) {
             </div>
           );
         })}
+
+        {extras.map((x) => (
+          <div className="comida" key={x.id}>
+            <div className="marca on" aria-hidden="true" style={{ background: 'var(--jade)', borderColor: 'var(--jade)' }}>✓</div>
+            <div className="comida-cuerpo">
+              <div className="comida-tiempo">
+                {(TIEMPOS.find((t) => t.k === x.tiempo) || {}).nombre || 'Extra'} · agregado a mano
+              </div>
+              <div className="comida-nombre">{x.nombre}</div>
+              <div className="comida-meta">
+                {x.cant} {x.unidad} · {x.kcal} kcal
+                {x.fuente === 'codigo' ? ' · por código de barras' : ''}
+              </div>
+            </div>
+            <button className="btn chico linea" onClick={() => quitarExtra(x.id)}>Quitar</button>
+          </div>
+        ))}
+
+        <button className="btn suave" style={{ marginTop: 14 }} onClick={() => setAgregando(true)}>
+          + Agregar lo que comí
+        </button>
       </div>
 
       {meta && (<div className="tarjeta">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
           <div className="titulo-seccion" style={{ margin: 0 }}>Tu aporte del día</div>
-          {meta.extra > 0 && <span className="pildora jade">+{meta.extra} por entreno</span>}
+          {yo.recuperacion
+            ? <span className="pildora gris">En recuperación</span>
+            : meta.extra > 0 && <span className="pildora jade">+{meta.extra} por entreno</span>}
         </div>
         <Medidor etq="Energía" valor={consumido.kcal} meta={meta.kcal} unidad="kcal" />
         <Medidor etq="Proteína" valor={consumido.prot} meta={meta.prot} unidad="g" tono="jade" />
         <Medidor etq="Hidratos" valor={consumido.carb} meta={meta.carb} unidad="g" tono="maiz" />
         <Medidor etq="Grasa" valor={consumido.gras} meta={meta.gras} unidad="g" tono="achiote" />
         <p className="nota">
-          Se suma sólo lo que marcas como comido, con tu tamaño de porción.
-          {meta.extra > 0
-            ? ` Hoy entrenas, así que la meta sube de ${meta.base.toLocaleString('es-MX')} a ${meta.kcal.toLocaleString('es-MX')} kcal.`
-            : ' Son cifras aproximadas de referencia.'}
+          Se suma lo que marcas como comido más lo que agregas a mano.
+          {yo.recuperacion
+            ? ' Estás en modo recuperación: la meta se queda como referencia y la app no te va a señalar si comes menos. Sigue las indicaciones de tu médico.'
+            : meta.extra > 0
+              ? ` Hoy entrenas, así que la meta sube de ${meta.base.toLocaleString('es-MX')} a ${meta.kcal.toLocaleString('es-MX')} kcal.`
+              : ' Son cifras aproximadas de referencia.'}
         </p>
       </div>)}
     </>)}
 
-    {entrenosHoy.length > 0 && (
+    {entrenosHoy.length > 0 && !yo.recuperacion && (
       <div className="tarjeta plana" style={{ background: 'var(--jade-lavado)', border: 0 }}>
         <div className="comida-tiempo" style={{ color: 'var(--jade)' }}>Hoy entrenas</div>
         {entrenosHoy.map((e) => (
@@ -293,7 +346,25 @@ function PantallaHoy({ estado, actualizar, recetas, abrirReceta }) {
       </div>
       <p className="nota">Un vaso son 250 ml. La meta se calcula con 35 ml por kilo de peso.</p>
     </div>
+
+    {agregando && (
+      <AgregarComida estado={estado} tiempoSugerido={tiempoAhora()} Hoja={Hoja}
+        onGuardar={guardarExtra} onGuardarCache={guardarCache} onCerrar={() => setAgregando(false)} />
+    )}
   </>);
+}
+
+// Sugiere el tiempo de comida más cercano a la hora actual, para que el usuario
+// normalmente sólo tenga que confirmar.
+function tiempoAhora() {
+  const h = new Date().getHours() * 60 + new Date().getMinutes();
+  let mejor = TIEMPOS[0].k, dist = Infinity;
+  for (const t of TIEMPOS) {
+    const [hh, mm] = t.hora.split(':').map(Number);
+    const d = Math.abs(hh * 60 + mm - h);
+    if (d < dist) { dist = d; mejor = t.k; }
+  }
+  return mejor;
 }
 
 /* ══════════ PANTALLA: Semana ══════════ */
@@ -894,6 +965,16 @@ function PantallaFamilia({ estado, actualizar }) {
             onClick={() => actualizar({ personas: estado.personas.map((x) => (x.id === p.id ? { ...x, come: !x.come } : x)) })}>
             {p.come ? 'Marcar que no come en casa' : 'Volver a contar en las porciones'}
           </button>
+          <button className={'btn chico ' + (p.recuperacion ? 'suave' : 'linea')} style={{ width: '100%', marginTop: 7 }}
+            onClick={() => actualizar({ personas: estado.personas.map((x) => (x.id === p.id ? { ...x, recuperacion: !x.recuperacion } : x)) })}>
+            {p.recuperacion ? 'Terminar modo recuperación' : 'Activar modo recuperación'}
+          </button>
+          {p.recuperacion && (
+            <p className="nota">
+              Mientras esté activo: los entrenamientos programados no suman a la meta y la app
+              no señala si se come por debajo de ella. Las metas siguen visibles como referencia.
+            </p>
+          )}
         </div>
       );
     })}
@@ -962,7 +1043,7 @@ function Bienvenida({ onListo }) {
 }
 
 /* ══════════ Raíz ══════════ */
-const VACIO = { personas: [], plan: {}, bitacora: {}, medidas: [], misRecetas: [], compras: {}, despensa: {}, rutina: null };
+const VACIO = { personas: [], plan: {}, bitacora: {}, medidas: [], misRecetas: [], compras: {}, despensa: {}, rutina: null, frecuentes: [], productos: {} };
 
 function App() {
   const [estado, setEstado] = useState(null);

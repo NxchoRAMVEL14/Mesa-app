@@ -3,6 +3,37 @@
 Estas notas también están dentro de la app, en el botón **?** del encabezado,
 pestaña *Novedades*.
 
+## 1.3.0 — 17 de agosto de 2026 · Registrar fuera del menú
+
+**Nuevo**
+- Botón para agregar en Hoy cualquier comida que no estuviera en el plan, con
+  su propio tiempo del día.
+- Lista de 140 alimentos comunes con su aporte, disponible sin conexión,
+  incluyendo los de dieta líquida y de recuperación.
+- Escáner de código de barras con la cámara, conectado a Open Food Facts, con
+  captura del código a mano si la cámara no está disponible.
+- Memoria de los alimentos que registras seguido.
+- Modo recuperación: pausa los entrenamientos y silencia los avisos de comer
+  poco.
+
+**Arreglado**
+- Al tocar fuera de la hoja durante el escaneo, la app daba un paso atrás en
+  lugar de cerrar. Ahora el fondo siempre cierra y cada paso tiene su Atrás.
+
+**Detalles**
+- Los productos escaneados se guardan en el teléfono, así que volver a escanear
+  el mismo código funciona sin internet. Los datos de Open Food Facts los
+  aportan voluntarios y pueden estar incompletos o equivocados: por eso siempre
+  se muestran para revisarlos antes de guardar. Se acredita la fuente en la
+  propia pantalla, como pide su licencia.
+- El escáner usa la API `BarcodeDetector` del navegador, disponible en Chrome
+  para Android. Donde no exista, la app cae al modo de teclear el código sin
+  avisar de nada raro.
+- El modo recuperación existe porque sin él la app señalaría a alguien
+  convaleciente por comer poco, que es justo lo contrario de lo que necesita
+  leer. Mientras está activo, las metas siguen visibles como referencia pero la
+  app no compara nada contra ellas.
+
 ## 1.2.0 — 17 de agosto de 2026 · Ilustraciones y manual
 
 **Nuevo**

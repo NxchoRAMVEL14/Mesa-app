@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export const VERSION = '1.2.0';
+export const VERSION = '1.3.0';
 
 // ── Manual de usuario ─────────────────────────────────────────────────────
 // Se guarda dentro de la app a propósito: un manual en un archivo aparte no
@@ -22,9 +22,31 @@ const MANUAL = [
     icono: '☀',
     p: [
       ['Marca lo que comes', 'En **Hoy** aparecen los cinco tiempos. Toca el cuadro de la izquierda cuando termines de comer algo. Sólo lo que marcas cuenta para tus totales del día.'],
+      ['Si comiste otra cosa', 'El botón **+ Agregar lo que comí** registra lo que no estaba en el plan: algo de la calle, un producto empacado o lo que se te ocurra. Cuenta igual para tus totales.'],
       ['Toca el platillo para verlo', 'Al tocar el nombre se abre la receta con los ingredientes ya multiplicados por el número de personas que comen. Desde ahí también puedes cambiarlo por otro platillo.'],
       ['Los vasos de agua', 'Toca el vaso número que llevas y se llenan todos los anteriores. Si te equivocas, toca el mismo vaso otra vez para bajar uno. La meta se calcula con 35 ml por kilo de peso.'],
       ['Días pasados y futuros', 'Las flechas de arriba te mueven de día. Puedes registrar algo que olvidaste ayer o revisar qué toca mañana.'],
+    ],
+  },
+  {
+    t: 'Registrar comida fuera del menú',
+    icono: '✚',
+    p: [
+      ['Para qué sirve', 'La vida real no siempre sigue el menú: comiste en la calle, te invitaron, o estás en dieta especial por alguna razón. El botón **+ Agregar lo que comí** en la pantalla Hoy registra cualquier cosa, esté o no en el plan.'],
+      ['Tres formas de hacerlo', 'Puedes **buscar en la lista** de alimentos comunes que trae la app y funciona sin internet; **escanear el código de barras** de un producto empacado; o **escribirlo a mano** si no aparece en ningún lado.'],
+      ['Lo que registras seguido', 'La app recuerda los últimos doce alimentos que registraste y los pone hasta arriba. Si tomas el mismo café todas las mañanas, lo agregas con dos toques.'],
+      ['El escáner', 'Usa la cámara del teléfono. Si tu navegador no la soporta o no das permiso, puedes teclear el código. Los datos vienen de **Open Food Facts**, una base abierta hecha por voluntarios: revisa las cifras contra la etiqueta antes de guardar, porque pueden estar incompletas o equivocadas.'],
+      ['Productos que no aparecen', 'Es normal con productos mexicanos poco comunes. Cuando pase, captúralo a mano una vez y queda en tus frecuentes. Los productos que sí encuentra se guardan en el teléfono, así que la segunda vez que escanees el mismo código funciona sin internet.'],
+    ],
+  },
+  {
+    t: 'Modo recuperación',
+    icono: '⚕',
+    p: [
+      ['Cuándo usarlo', 'Cuando estés convaleciente, enfermo o con indicación médica de comer distinto. Se activa en **Progreso → Familia**.'],
+      ['Qué cambia', 'Los entrenamientos programados dejan de sumar a la meta del día, y la app deja de señalarte cuando comes por debajo de ella. Las metas siguen visibles como referencia, nada se borra.'],
+      ['Por qué existe', 'Sin este modo, la app te diría que "quedaste bastante por debajo de lo que pedía este día" justo cuando estás recuperándote de algo y comiendo lo que puedes. Ese mensaje no ayuda a nadie en esa situación.'],
+      ['Sigue a tu médico, no a la app', 'Durante una recuperación, quién decide qué y cuánto comes es la persona que te está atendiendo. Mesa sirve para llevar registro de lo que comiste, no para decirte qué comer.'],
     ],
   },
   {
@@ -92,6 +114,23 @@ const MANUAL = [
 
 // ── Notas de versión ──────────────────────────────────────────────────────
 const NOTAS = [
+  {
+    v: '1.3.0', fecha: '17 de agosto de 2026', titulo: 'Registrar fuera del menú',
+    nuevo: [
+      'Botón para agregar en Hoy cualquier comida que no estuviera en el plan, con su propio tiempo del día.',
+      'Lista de 140 alimentos comunes con su aporte, disponible sin conexión, incluyendo los de dieta líquida y de recuperación.',
+      'Escáner de código de barras con la cámara, conectado a Open Food Facts, con captura del código a mano si la cámara no está disponible.',
+      'Memoria de los alimentos que registras seguido, para reusarlos con dos toques.',
+      'Modo recuperación: pausa los entrenamientos y silencia los avisos de comer poco.',
+    ],
+    arreglos: [
+      'Al tocar fuera de la hoja durante el escaneo, la app daba un paso atrás en lugar de cerrar. Ahora el fondo siempre cierra y cada paso tiene su botón de Atrás.',
+    ],
+    detalles: [
+      'Los productos escaneados se guardan en el teléfono, así que volver a escanear el mismo código funciona sin internet. Los datos de Open Food Facts los aportan voluntarios y pueden estar incompletos: por eso siempre se muestran para revisarlos antes de guardar.',
+      'El modo recuperación existe porque sin él la app señalaría a alguien convaleciente por comer poco, que es justo lo contrario de lo que necesita leer.',
+    ],
+  },
   {
     v: '1.2.0', fecha: '17 de agosto de 2026', titulo: 'Ilustraciones y manual',
     nuevo: [

@@ -96,7 +96,9 @@ export const entrenosDelDia = (persona, fecha) => {
 export function energiaDelDia(persona, fecha) {
   const base = energiaDiaria(persona);
   if (!base) return null;
-  const extra = entrenosDelDia(persona, fecha)
+  // En recuperación los entrenamientos programados no suman: se da por hecho
+  // que no se están haciendo, y subir la meta sólo daría una cifra irreal.
+  const extra = persona.recuperacion ? 0 : entrenosDelDia(persona, fecha)
     .reduce((s, e) => s + gastoSesion(e, persona.peso), 0);
   return { base, extra, total: base + extra };
 }
@@ -393,11 +395,15 @@ export function cruzarDias({ persona, fechas, plan, bitacora, indiceRecetas }) {
       const r = indiceRecetas[id];
       if (r) consumido += r.kcal * f;
     }
+    // Lo registrado a mano cuenta igual que el menú planeado.
+    const extras = reg.extras || [];
+    consumido += extras.reduce((s, x) => s + (x.kcal || 0), 0);
 
     const meta = macrosDelDia(persona, fecha);
     const sesiones = (reg.entrenos || []).length
       ? reg.entrenos
-      : entrenosDelDia(persona, fecha).map((e) => ({ ...e, programado: true }));
+      : persona.recuperacion ? []
+        : entrenosDelDia(persona, fecha).map((e) => ({ ...e, programado: true }));
     const gastado = sesiones.reduce((s, e) => s + gastoSesion(e, persona.peso), 0);
 
     return {
@@ -411,6 +417,8 @@ export function cruzarDias({ persona, fechas, plan, bitacora, indiceRecetas }) {
       sesiones,
       tiemposHechos,
       tiemposPlan,
+      extras: extras.length,
+      recuperacion: !!persona.recuperacion,
     };
   });
 }
